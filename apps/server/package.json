@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start:test": "node dist/server.js",
+    "start": "node dist/server.js",
     "lint": "echo skip",
     "typecheck": "tsc -p tsconfig.json",
     "test": "echo server tests TBD"
@@ -32,9 +32,12 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
+    "@types/express-session": "^1.19.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.17",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.6.3"
+    "typescript": "^5.9.3"
   }
 }

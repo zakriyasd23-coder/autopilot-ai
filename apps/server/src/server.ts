@@ -11,7 +11,7 @@ import oauthRouter from "./routes/oauth";
 import metaRoutes from "./routes/meta";
 import instagramRoutes from "./routes/instagram";
 
-dotenv.config({ path: "../../.env" });
+dotenv.config();
 
 const app = express();
 
