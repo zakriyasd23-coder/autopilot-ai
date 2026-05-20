@@ -228,7 +228,7 @@ export default function Dashboard() {
           {renderPlatformCard(
             "Instagram",
             instagramAccounts,
-            "https://autopilot-backend-5iup.onrender.com/api/instagram/login"
+            "https://autopilot-backend-5iup.onrender.com/api/meta/login"
           )}
 
           {renderPlatformCard(

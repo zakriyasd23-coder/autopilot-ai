@@ -6,11 +6,11 @@ const router = express.Router();
 
 router.get("/login", (req, res) => {
   const authUrl =
-    `https://www.instagram.com/oauth/authorize` +
+    `https://www.facebook.com/v19.0/dialog/oauth` +
     `?client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI!)}` +
-    `&response_type=code` +
-    `&scope=user_profile,user_media`;
+    `&scope=instagram_business_basic,instagram_business_manage_messages,instagram_manage_comments,pages_show_list` +
+    `&response_type=code`;
 
   res.redirect(authUrl);
 });
@@ -19,36 +19,69 @@ router.get("/callback", async (req, res) => {
   try {
     const code = req.query.code as string;
 
-    const tokenRes = await axios.post(
-      "https://api.instagram.com/oauth/access_token",
-      new URLSearchParams({
-        client_id: process.env.INSTAGRAM_CLIENT_ID!,
-        client_secret: process.env.INSTAGRAM_CLIENT_SECRET!,
-        grant_type: "authorization_code",
-        redirect_uri: process.env.INSTAGRAM_REDIRECT_URI!,
-        code,
-      }),
+    // exchange code for token
+    const tokenRes = await axios.get(
+      "https://graph.facebook.com/v19.0/oauth/access_token",
       {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+        params: {
+          client_id: process.env.INSTAGRAM_CLIENT_ID,
+          client_secret: process.env.INSTAGRAM_CLIENT_SECRET,
+          redirect_uri: process.env.INSTAGRAM_REDIRECT_URI,
+          code,
         },
       }
     );
 
     const accessToken = tokenRes.data.access_token;
-    const userId = tokenRes.data.user_id;
 
-    const userRes = await axios.get(
-      `https://graph.instagram.com/${userId}`,
+    // get facebook pages
+    const pagesRes = await axios.get(
+      "https://graph.facebook.com/me/accounts",
       {
         params: {
-          fields: "id,username",
           access_token: accessToken,
         },
       }
     );
 
-    const user = userRes.data;
+    const pages = pagesRes.data.data;
+
+    if (!pages.length) {
+      return res.send("No Facebook page connected");
+    }
+
+    const pageId = pages[0].id;
+    const pageToken = pages[0].access_token;
+
+    // get instagram business account
+    const igRes = await axios.get(
+      `https://graph.facebook.com/${pageId}`,
+      {
+        params: {
+          fields: "instagram_business_account",
+          access_token: pageToken,
+        },
+      }
+    );
+
+    const igId = igRes.data.instagram_business_account?.id;
+
+    if (!igId) {
+      return res.send("No Instagram Business account linked");
+    }
+
+    // get instagram profile
+    const profileRes = await axios.get(
+      `https://graph.facebook.com/${igId}`,
+      {
+        params: {
+          fields: "id,username,profile_picture_url",
+          access_token: pageToken,
+        },
+      }
+    );
+
+    const user = profileRes.data;
 
     await Account.findOneAndUpdate(
       {
@@ -59,7 +92,8 @@ router.get("/callback", async (req, res) => {
         platform: "Instagram",
         accountId: user.id,
         accountName: user.username,
-        accessToken,
+        avatar: user.profile_picture_url || "",
+        accessToken: pageToken,
         connected: true,
       },
       {
