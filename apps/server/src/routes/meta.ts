@@ -9,7 +9,7 @@ router.get("/login", (req, res) => {
     `https://www.facebook.com/v19.0/dialog/oauth` +
     `?client_id=${process.env.META_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.META_REDIRECT_URI!)}` +
-    `&scope=public_profile`;
+    `&scope=public_profile,pages_show_list,pages_read_engagement,instagram_basic,business_management`;
 
   res.redirect(url);
 });
@@ -32,11 +32,12 @@ router.get("/callback", async (req, res) => {
 
     const accessToken = tokenRes.data.access_token;
 
+    // Facebook user
     const userRes = await axios.get(
       "https://graph.facebook.com/me",
       {
         params: {
-          fields: "id,name,picture,email",
+          fields: "id,name,picture",
           access_token: accessToken,
         },
       }
@@ -63,11 +64,72 @@ router.get("/callback", async (req, res) => {
       }
     );
 
+    // Facebook pages
+    const pagesRes = await axios.get(
+      "https://graph.facebook.com/me/accounts",
+      {
+        params: {
+          access_token: accessToken,
+        },
+      }
+    );
+
+    const pages = pagesRes.data.data || [];
+
+    for (const page of pages) {
+      try {
+        const igRes = await axios.get(
+          `https://graph.facebook.com/${page.id}`,
+          {
+            params: {
+              fields: "instagram_business_account",
+              access_token: accessToken,
+            },
+          }
+        );
+
+        const igAccount = igRes.data.instagram_business_account;
+
+        if (igAccount?.id) {
+          const igProfile = await axios.get(
+            `https://graph.facebook.com/${igAccount.id}`,
+            {
+              params: {
+                fields: "id,username,profile_picture_url",
+                access_token: accessToken,
+              },
+            }
+          );
+
+          await Account.findOneAndUpdate(
+            {
+              platform: "Instagram",
+              accountId: igProfile.data.id,
+            },
+            {
+              platform: "Instagram",
+              accountId: igProfile.data.id,
+              accountName: igProfile.data.username,
+              avatar: igProfile.data.profile_picture_url || "",
+              accessToken,
+              connected: true,
+            },
+            {
+              upsert: true,
+              new: true,
+            }
+          );
+        }
+      } catch (err) {
+        console.log("No Instagram linked to page");
+      }
+    }
+
     res.redirect("http://localhost:5179/dashboard");
 
   } catch (error: any) {
-    console.error("FACEBOOK ERROR:", error.response?.data || error.message);
-    res.send("Facebook login failed");
+    console.error("META ERROR:", error.response?.data || error.message);
+    res.send("Meta login failed");
   }
 });
 

@@ -228,7 +228,7 @@ export default function Dashboard() {
           {renderPlatformCard(
             "Instagram",
             instagramAccounts,
-            "http://localhost:4000/api/instagram/login"
+            "https://autopilot-backend-5iup.onrender.com/api/instagram/login"
           )}
 
           {renderPlatformCard(
