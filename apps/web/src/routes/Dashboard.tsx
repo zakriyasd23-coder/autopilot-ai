@@ -234,7 +234,7 @@ export default function Dashboard() {
           {renderPlatformCard(
             "Facebook",
             facebookAccounts,
-             "http://localhost:4000/api/meta/login"
+             "https://autopilot-backend-5iup.onrender.com/api/meta/login"
             )}
         </div>
       </main>
