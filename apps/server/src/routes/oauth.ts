@@ -71,10 +71,10 @@ router.get("/google/callback", async (req, res) => {
   }
 );
     res.redirect("http://localhost:5176/dashboard");
-  } catch (error) {
-  console.error("SAVE ERROR:", error);
-  res.status(500).send("OAuth failed");
-   }
+  } catch (error: any) {
+  console.error("FULL OAUTH ERROR:", error);
+  res.status(500).send(error.message || "OAuth failed");
+}
 
 });
 
