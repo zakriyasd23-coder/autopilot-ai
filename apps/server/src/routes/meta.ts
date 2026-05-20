@@ -9,7 +9,7 @@ router.get("/login", (req, res) => {
     `https://www.facebook.com/v19.0/dialog/oauth` +
     `?client_id=${process.env.META_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.META_REDIRECT_URI!)}` +
-    `&scope=public_profile,email`;
+    `&scope=public_profile`;
 
   res.redirect(url);
 });
