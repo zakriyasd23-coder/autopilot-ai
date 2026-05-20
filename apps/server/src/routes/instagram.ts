@@ -38,20 +38,18 @@ router.get("/callback", async (req, res) => {
     );
 
     const accessToken = tokenRes.data.access_token;
-    const userId = tokenRes.data.user_id;
 
-    const profileRes = await axios.get(
-      `https://graph.instagram.com/${userId}`,
-      {
-        params: {
-          fields: "id,username",
-          access_token: accessToken,
-        },
-      }
-    );
+const profileRes = await axios.get(
+  "https://graph.instagram.com/me",
+  {
+    params: {
+      fields: "id,username",
+      access_token: accessToken,
+    },
+  }
+);
 
-    const user = profileRes.data;
-
+const user = profileRes.data;
     await Account.findOneAndUpdate(
       {
         platform: "Instagram",
