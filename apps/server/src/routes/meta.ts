@@ -8,8 +8,8 @@ router.get("/login", (req, res) => {
   const url =
     `https://www.facebook.com/v19.0/dialog/oauth` +
     `?client_id=${process.env.META_APP_ID}` +
-    `&redirect_uri=${process.env.META_REDIRECT_URI}` +
-    `&scope=public_profile`;
+    `&redirect_uri=${encodeURIComponent(process.env.META_REDIRECT_URI!)}` +
+    `&scope=public_profile,email`;
 
   res.redirect(url);
 });
@@ -44,17 +44,29 @@ router.get("/callback", async (req, res) => {
 
     const user = userRes.data;
 
-    await Account.create({
-  platform: "Facebook",
-  accountId: user.id,
-  accountName: user.name,
-  avatar: user.picture?.data?.url,
-  accessToken,
-});
+    await Account.findOneAndUpdate(
+      {
+        platform: "Facebook",
+        accountId: user.id,
+      },
+      {
+        platform: "Facebook",
+        accountId: user.id,
+        accountName: user.name,
+        avatar: user.picture?.data?.url || "",
+        accessToken,
+        connected: true,
+      },
+      {
+        upsert: true,
+        new: true,
+      }
+    );
 
     res.redirect("http://localhost:5179/dashboard");
-  } catch (error) {
-    console.error(error);
+
+  } catch (error: any) {
+    console.error("FACEBOOK ERROR:", error.response?.data || error.message);
     res.send("Facebook login failed");
   }
 });
