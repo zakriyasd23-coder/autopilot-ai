@@ -5,7 +5,6 @@ const accountSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false,
     },
 
     platform: {
@@ -39,6 +38,33 @@ const accountSchema = new mongoose.Schema(
     connected: {
       type: Boolean,
       default: true,
+    },
+
+    stats: {
+      subscribers: {
+        type: Number,
+        default: 0,
+      },
+
+      followers: {
+        type: Number,
+        default: 0,
+      },
+
+      views: {
+        type: Number,
+        default: 0,
+      },
+
+      videos: {
+        type: Number,
+        default: 0,
+      },
+
+      posts: {
+        type: Number,
+        default: 0,
+      },
     },
   },
   {
