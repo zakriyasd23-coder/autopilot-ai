@@ -6,11 +6,13 @@ const router = express.Router();
 
 router.get("/login", (req, res) => {
   const authUrl =
-    `https://www.facebook.com/v19.0/dialog/oauth` +
-    `?client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
+    `https://www.instagram.com/oauth/authorize` +
+    `?enable_fb_login=0` +
+    `&force_authentication=1` +
+    `&client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI!)}` +
-    `&scope=instagram_business_basic` +
-    `&response_type=code`;
+    `&response_type=code` +
+    `&scope=instagram_business_basic`;
 
   res.redirect(authUrl);
 });
@@ -19,31 +21,36 @@ router.get("/callback", async (req, res) => {
   try {
     const code = req.query.code as string;
 
-    const tokenRes = await axios.get(
-      "https://graph.facebook.com/v19.0/oauth/access_token",
+    const tokenRes = await axios.post(
+      "https://api.instagram.com/oauth/access_token",
+      new URLSearchParams({
+        client_id: process.env.INSTAGRAM_CLIENT_ID!,
+        client_secret: process.env.INSTAGRAM_CLIENT_SECRET!,
+        grant_type: "authorization_code",
+        redirect_uri: process.env.INSTAGRAM_REDIRECT_URI!,
+        code,
+      }),
       {
-        params: {
-          client_id: process.env.INSTAGRAM_CLIENT_ID,
-          client_secret: process.env.INSTAGRAM_CLIENT_SECRET,
-          redirect_uri: process.env.INSTAGRAM_REDIRECT_URI,
-          code,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       }
     );
 
     const accessToken = tokenRes.data.access_token;
+    const userId = tokenRes.data.user_id;
 
-    const userRes = await axios.get(
-      "https://graph.facebook.com/me",
+    const profileRes = await axios.get(
+      `https://graph.instagram.com/${userId}`,
       {
         params: {
-          fields: "id,name,picture",
+          fields: "id,username",
           access_token: accessToken,
         },
       }
     );
 
-    const user = userRes.data;
+    const user = profileRes.data;
 
     await Account.findOneAndUpdate(
       {
@@ -53,8 +60,7 @@ router.get("/callback", async (req, res) => {
       {
         platform: "Instagram",
         accountId: user.id,
-        accountName: user.name,
-        avatar: user.picture?.data?.url || "",
+        accountName: user.username,
         accessToken,
         connected: true,
       },
