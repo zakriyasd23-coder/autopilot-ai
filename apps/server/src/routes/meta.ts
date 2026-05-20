@@ -18,6 +18,7 @@ router.get("/callback", async (req, res) => {
   try {
     const { code } = req.query;
 
+    // exchange code
     const tokenRes = await axios.get(
       "https://graph.facebook.com/v19.0/oauth/access_token",
       {
@@ -32,7 +33,7 @@ router.get("/callback", async (req, res) => {
 
     const accessToken = tokenRes.data.access_token;
 
-    // Facebook user
+    // facebook user
     const userRes = await axios.get(
       "https://graph.facebook.com/me",
       {
@@ -64,7 +65,7 @@ router.get("/callback", async (req, res) => {
       }
     );
 
-    // Facebook pages
+    // get pages
     const pagesRes = await axios.get(
       "https://graph.facebook.com/me/accounts",
       {
@@ -88,11 +89,11 @@ router.get("/callback", async (req, res) => {
           }
         );
 
-        const igAccount = igRes.data.instagram_business_account;
+        const igAccountId = igRes.data.instagram_business_account?.id;
 
-        if (igAccount?.id) {
-          const igProfile = await axios.get(
-            `https://graph.facebook.com/${igAccount.id}`,
+        if (igAccountId) {
+          const igProfileRes = await axios.get(
+            `https://graph.facebook.com/${igAccountId}`,
             {
               params: {
                 fields: "id,username,profile_picture_url",
@@ -101,16 +102,18 @@ router.get("/callback", async (req, res) => {
             }
           );
 
+          const ig = igProfileRes.data;
+
           await Account.findOneAndUpdate(
             {
               platform: "Instagram",
-              accountId: igProfile.data.id,
+              accountId: ig.id,
             },
             {
               platform: "Instagram",
-              accountId: igProfile.data.id,
-              accountName: igProfile.data.username,
-              avatar: igProfile.data.profile_picture_url || "",
+              accountId: ig.id,
+              accountName: ig.username,
+              avatar: ig.profile_picture_url || "",
               accessToken,
               connected: true,
             },
@@ -121,14 +124,18 @@ router.get("/callback", async (req, res) => {
           );
         }
       } catch (err) {
-        console.log("No Instagram linked to page");
+        console.log("No IG linked to page");
       }
     }
 
     res.redirect("http://localhost:5179/dashboard");
 
   } catch (error: any) {
-    console.error("META ERROR:", error.response?.data || error.message);
+    console.error(
+      "META ERROR:",
+      error.response?.data || error.message
+    );
+
     res.send("Meta login failed");
   }
 });
